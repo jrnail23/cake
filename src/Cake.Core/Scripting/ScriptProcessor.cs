@@ -10,27 +10,30 @@ using Cake.Core.Scripting.Analysis;
 namespace Cake.Core.Scripting
 {
     /// <summary>
-    /// Implementation of a script processor.
+    ///     Implementation of a script processor.
     /// </summary>
     public sealed class ScriptProcessor : IScriptProcessor
     {
-        private readonly IFileSystem _fileSystem;
+        private readonly INuGetPackageAssembliesLocator _assembliesLocator;
         private readonly ICakeEnvironment _environment;
-        private readonly ICakeLog _log;
+        private readonly IFileSystem _fileSystem;
         private readonly INuGetPackageInstaller _installer;
+        private readonly ICakeLog _log;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="ScriptProcessor"/> class.
+        ///     Initializes a new instance of the <see cref="ScriptProcessor" /> class.
         /// </summary>
         /// <param name="fileSystem">The file system.</param>
         /// <param name="environment">The environment.</param>
         /// <param name="log">The log.</param>
         /// <param name="installer">The NuGet package installer.</param>
+        /// <param name="assembliesLocator">the nuget assemblies locator.</param>
         public ScriptProcessor(
-            IFileSystem fileSystem, 
+            IFileSystem fileSystem,
             ICakeEnvironment environment,
-            ICakeLog log, 
-            INuGetPackageInstaller installer)
+            ICakeLog log,
+            INuGetPackageInstaller installer,
+            INuGetPackageAssembliesLocator assembliesLocator)
         {
             if (fileSystem == null)
             {
@@ -48,15 +51,20 @@ namespace Cake.Core.Scripting
             {
                 throw new ArgumentNullException("installer");
             }
+            if (assembliesLocator == null)
+            {
+                throw new ArgumentNullException("assembliesLocator");
+            }
 
             _fileSystem = fileSystem;
             _environment = environment;
             _log = log;
             _installer = installer;
+            _assembliesLocator = assembliesLocator;
         }
 
         /// <summary>
-        /// Installs the addins.
+        ///     Installs the addins.
         /// </summary>
         /// <param name="analyzerResult">The analyzer result.</param>
         /// <param name="installationRoot">The installation root path.</param>
@@ -83,18 +91,21 @@ namespace Cake.Core.Scripting
                 _log.Verbose("Installing addins...");
                 foreach (var addin in analyzerResult.Addins)
                 {
-                    var addInAssemblies = InstallPackage(addin, installationRoot, GetAddInAssemblies);
+                    var addinCopy = addin;
+                    var addInAssemblies = InstallPackage(addinCopy, installationRoot,
+                        path => GetAddInAssemblies(addinCopy, path));
                     if (addInAssemblies.Length == 0)
                     {
                         const string format = "Failed to install addin '{0}'.";
-                        var message = string.Format(CultureInfo.InvariantCulture, format, addin.PackageId);
+                        var message = string.Format(CultureInfo.InvariantCulture, format, addinCopy.PackageId);
                         throw new CakeException(message);
                     }
 
                     // Reference found assemblies.
                     foreach (var assemblyPath in addInAssemblies)
                     {
-                        _log.Debug("The addin {0} will reference {1}.", addin.PackageId, assemblyPath.Path.GetFilename());
+                        _log.Debug("The addin {0} will reference {1}.", addinCopy.PackageId,
+                            assemblyPath.Path.GetFilename());
                         result.Add(assemblyPath.Path);
                     }
                 }
@@ -103,12 +114,12 @@ namespace Cake.Core.Scripting
         }
 
         /// <summary>
-        /// Installs the tools specified in the build scripts.
+        ///     Installs the tools specified in the build scripts.
         /// </summary>
         /// <param name="analyzerResult">The analyzer result.</param>
         /// <param name="installationRoot">The installation root path.</param>
         public void InstallTools(
-            ScriptAnalyzerResult analyzerResult, 
+            ScriptAnalyzerResult analyzerResult,
             DirectoryPath installationRoot)
         {
             if (analyzerResult == null)
@@ -140,8 +151,8 @@ namespace Cake.Core.Scripting
         }
 
         private IFile[] InstallPackage(
-            NuGetPackage package, 
-            DirectoryPath installationRoot, 
+            NuGetPackage package,
+            DirectoryPath installationRoot,
             Func<DirectoryPath, IFile[]> fetcher)
         {
             var root = _fileSystem.GetDirectory(installationRoot);
@@ -170,14 +181,9 @@ namespace Cake.Core.Scripting
             return fetcher(packagePath);
         }
 
-        private IFile[] GetAddInAssemblies(DirectoryPath addInDirectoryPath)
+        private IFile[] GetAddInAssemblies(NuGetPackage package, DirectoryPath addinDirectory)
         {
-            var addInDirectory = _fileSystem.GetDirectory(addInDirectoryPath);
-            return addInDirectory.Exists
-                ? addInDirectory.GetFiles("*.dll", SearchScope.Recursive)
-                    .Where(file => !file.Path.FullPath.EndsWith("Cake.Core.dll", StringComparison.OrdinalIgnoreCase))
-                    .ToArray()
-                : new IFile[0];
+            return _assembliesLocator.FindAssemblies(package, addinDirectory);
         }
 
         private IFile[] GetToolExecutables(DirectoryPath toolDirectoryPath)

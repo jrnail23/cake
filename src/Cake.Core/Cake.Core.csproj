@@ -131,6 +131,7 @@
     <Compile Include="IO\IRegistry.cs" />
     <Compile Include="IO\IRegistryKey.cs" />
     <Compile Include="IO\Machine.cs" />
+    <Compile Include="IO\NuGet\INuGetAssemblyCompatibilityFilter.cs" />
     <Compile Include="IO\NuGet\INuGetPackageInstaller.cs" />
     <Compile Include="IO\NuGet\INuGetToolResolver.cs" />
     <Compile Include="IO\NuGet\NuGetPackage.cs" />
@@ -160,6 +161,8 @@
     <Compile Include="..\SolutionInfo.cs">
       <Link>Properties\SolutionInfo.cs</Link>
     </Compile>
+    <Compile Include="IO\NuGet\NuGetPackageAssembliesLocator.cs" />
+    <Compile Include="IO\NuGet\INuGetPackageAssembliesLocator.cs" />
     <Compile Include="Scripting\Analysis\IScriptAnalyzer.cs" />
     <Compile Include="Scripting\Analysis\IScriptAnalyzerContext.cs" />
     <Compile Include="Scripting\Analysis\IScriptInformation.cs" />

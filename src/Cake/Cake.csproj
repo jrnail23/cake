@@ -147,6 +147,9 @@
     <Compile Include="Diagnostics\Formatting\LiteralToken.cs" />
     <Compile Include="Diagnostics\Formatting\PropertyToken.cs" />
     <Compile Include="Diagnostics\IVerbosityAware.cs" />
+    <Compile Include="NuGet\INuGetVersionUtility.cs" />
+    <Compile Include="NuGet\NuGetAssemblyCompatibilityFilter.cs" />
+    <Compile Include="NuGet\NuGetVersionUtilityWrapper.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="..\SolutionInfo.cs">
